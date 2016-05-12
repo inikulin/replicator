@@ -1,0 +1,33 @@
+{
+  "name": "replicator",
+  "version": "1.0.0",
+  "description": "JSON on steroids.",
+  "main": "index.js",
+  "scripts": {
+    "test": "eslint index.js test && mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inikulin/replicator.git"
+  },
+  "keywords": [
+    "JSON",
+    "serialization",
+    "deserialization",
+    "circular",
+    "circularJSON",
+    "structured-clone",
+    "structured",
+    "clone"
+  ],
+  "author": "Ivan Nikulin (ifaaan@gmail.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/inikulin/replicator/issues"
+  },
+  "homepage": "https://github.com/inikulin/replicator#readme",
+  "devDependencies": {
+    "eslint": "^2.9.0",
+    "mocha": "^2.4.5"
+  }
+}
