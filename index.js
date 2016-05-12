@@ -1,13 +1,71 @@
-var Replicator = module.exports = function () {
+// Const
+var TRANSFORMED_TYPE_KEY    = '@@type';
+var KEY_REQUIRE_ESCAPING_RE = /^#*@@type$/;
+
+
+// EncodingTransformer
+var EncodingTransformer = function (transforms) {
+    this.transforms = transforms;
+};
+
+EncodingTransformer.prototype._handleArray = function (arr) {
+    var result = [];
+
+    for (var i = 0; i < arr.length; i++)
+        result[i] = this.transform(arr[i]);
+
+    return result;
+};
+
+EncodingTransformer.prototype._handleObject = function (obj) {
+    var result = {};
+
+    for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            var resultKey = KEY_REQUIRE_ESCAPING_RE.test(key) ? '#' + key : key;
+
+            result[resultKey] = this.transform(obj[key]);
+        }
+    }
+
+    return result;
+};
+
+EncodingTransformer.prototype.transform = function (val) {
+    var type = typeof val;
+
+    for (var i = 0; i < this.transforms.length; i++) {
+        var transform = this.transforms[i];
+
+        if (transform.shouldTransformToPrimitive(type, val)) {
+            var result       = {};
+            var primitiveVal = transform.toPrimitive(val);
+
+            result[TRANSFORMED_TYPE_KEY] = transform.type;
+            result.data                  = this.transform(primitiveVal);
+
+            return result;
+        }
+    }
+
+    if (type === 'object')
+        return Array.isArray(val) ? this._handleArray(val) : this._handleObject(val);
+
+    return val;
+};
+
+
+// Replicator
+var Replicator = module.exports = function (serializer) {
     this.transforms = [];
-    this.serializer = JSON;
+    this.serializer = serializer || JSON;
 };
 
 // Manage transforms
 Replicator.prototype.addTransform = function (transform) {
     for (var i = 0; i < this.transforms.length; i++) {
-        if (this.transforms[i].name === transform.name)
-            throw new Error('Transform with name "' + transform.name + '" was already added.');
+        if (this.transforms[i].type === transform.type)
+            throw new Error('Transform with type "' + transform.type + '" was already added.');
     }
 
     this.transforms.push(transform);
@@ -24,51 +82,9 @@ Replicator.prototype.removeTransform = function (transform) {
     return this;
 };
 
-// Encode
-Replicator.prototype._transformArrayToPrimitive = function (arr) {
-    var transformed = [];
-
-    for (var i = 0; i < arr.length; i++)
-        transformed[i] = this._transformToPrimitive(arr[i]);
-
-    return transformed;
-};
-
-Replicator.prototype._transformObjectToPrimitive = function (obj) {
-    var transformed = {};
-
-    for (var prop in obj) {
-        if (obj.hasOwnProperty(prop))
-            transformed[prop] = this._transformToPrimitive(obj[prop]);
-    }
-
-    return transformed;
-};
-
-Replicator.prototype._transformToPrimitive = function (val) {
-    var type = typeof val;
-
-    for (var i = 0; i < this.transforms.length; i++) {
-        var transform = this.transforms[i];
-
-        if (transform.shouldTransformToPrimitive(type, val)) {
-            var transformed = transform.toPrimitive(val);
-
-            return {
-                '@@r-t': transform.name,
-                data:    this._transformToPrimitive(transformed)
-            };
-        }
-    }
-
-    if (type === 'object')
-        return Array.isArray(val) ? this._transformArrayToPrimitive(val) : this._transformObjectToPrimitive(val);
-
-    return val;
-};
-
 Replicator.prototype.encode = function (val) {
-    var transformed = this._transformToPrimitive(val);
+    var transformer = new EncodingTransformer(this.transforms);
+    var transformed = transformer.transform(val);
 
     return this.serializer.stringify(transformed);
 };
