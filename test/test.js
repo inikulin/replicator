@@ -52,7 +52,7 @@ describe('Encoding basics', function () {
                     return val instanceof SomeClass;
                 },
 
-                toPrimitive: function (val) {
+                toSerializable: function (val) {
                     return [val.func1, val.func2];
                 }
             })
@@ -63,7 +63,7 @@ describe('Encoding basics', function () {
                     return type === 'function';
                 },
 
-                toPrimitive: function (val) {
+                toSerializable: function (val) {
                     return val.toString().replace(/\s/g, '');
                 }
             })
@@ -74,7 +74,7 @@ describe('Encoding basics', function () {
                     return val instanceof Error;
                 },
 
-                toPrimitive: function (val) {
+                toSerializable: function (val) {
                     return val.message;
                 }
             });
@@ -97,37 +97,37 @@ describe('Encoding basics', function () {
 
         var encoded = replicator.encode(obj);
 
-        assert.deepEqual(JSON.parse(encoded), {
+        assert.deepEqual(JSON.parse(encoded), [{
             someClassProp: {
-                '@@type': 'SomeClass',
+                '@t': 'SomeClass',
 
                 data: [
                     {
-                        '@@type': 'function',
-                        data:     "function(){return'yo1';}"
+                        '@t': 'function',
+                        data: "function(){return'yo1';}"
                     },
                     {
-                        '@@type': 'function',
-                        data:     "function(){return'yo2';}"
+                        '@t': 'function',
+                        data: "function(){return'yo2';}"
                     }
                 ]
             },
 
             otherObjects: [
                 {
-                    '@@type': 'Error',
-                    data:     'Hey ya!'
+                    '@t': 'Error',
+                    data: 'Hey ya!'
                 },
                 {
-                    '@@type': 'function',
-                    data:     "function(){return'42';}"
+                    '@t': 'function',
+                    data: "function(){return'42';}"
                 },
                 {
                     strProperty:    'yo',
                     numberProperty: 42
                 }
             ]
-        });
+        }]);
     });
 
     it('Should not modify original object', function () {
@@ -147,25 +147,25 @@ describe('Encoding basics', function () {
                 return Array.isArray(val);
             },
 
-            toPrimitive: function (val) {
+            toSerializable: function (val) {
                 return val[0];
             }
         });
 
         var encoded = replicator.encode(obj);
 
-        assert.deepEqual(JSON.parse(encoded), {
+        assert.deepEqual(JSON.parse(encoded), [{
             someProp1: {
                 prop: {
-                    '@@type': 'array',
-                    data:     'Hey ya'
+                    '@t': 'array',
+                    data: 'Hey ya'
                 }
             },
             someProp2: {
-                '@@type': 'array',
-                data:     'yo'
+                '@t': 'array',
+                data: 'yo'
             }
-        });
+        }]);
 
         assert.deepEqual(obj, {
             someProp1: {
@@ -175,18 +175,66 @@ describe('Encoding basics', function () {
         });
     });
 
+    it('Should encode circular references', function () {
+        var replicator = new Replicator();
+        var obj        = {};
+
+        obj.a = obj;
+
+        obj.b = {
+            ba: 123,
+            bb: obj
+        };
+
+        obj.c = {
+            ca: obj.b
+        };
+
+        obj.b.bc = obj.c;
+        obj.d    = [obj, obj.c];
+        obj.c.cb = obj.d;
+
+        var encoded = replicator.encode(obj);
+
+        assert.deepEqual(JSON.parse(encoded), [
+            {
+                a: { '@r': 0 },
+                b: { '@r': 1 },
+                c: { '@r': 2 },
+                d: { '@r': 3 }
+            },
+            {
+                ba: 123,
+                bb: { '@r': 0 },
+                bc: { '@r': 2 }
+            },
+            {
+                ca: { '@r': 1 },
+                cb: { '@r': 3 }
+            },
+            [
+                { '@r': 0 },
+                { '@r': 2 }
+            ]
+        ]);
+    });
+
     it('Should escape object keys when necessary', function () {
         var replicator = new Replicator();
         var encoded    = replicator.encode({
-            '@@type':    1,
-            '###@@type': 2,
-            '#@@type':   3
+            '@t':    1,
+            '###@t': 2,
+            '#@t':   3,
+            '@r':    4,
+            '##@r':  5
         });
 
-        assert.deepEqual(JSON.parse(encoded), {
-            '#@@type':    1,
-            '####@@type': 2,
-            '##@@type':   3
-        });
+        assert.deepEqual(JSON.parse(encoded), [{
+            '#@t':    1,
+            '####@t': 2,
+            '##@t':   3,
+            '#@r':    4,
+            '###@r':  5
+        }]);
     });
 });
