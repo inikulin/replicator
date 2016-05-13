@@ -37,7 +37,7 @@ EncodingTransformer.prototype.transform = function (val) {
     for (var i = 0; i < this.transforms.length; i++) {
         var transform = this.transforms[i];
 
-        if (transform.shouldTransformToPrimitive(type, val)) {
+        if (transform.shouldTransform(type, val)) {
             var result       = {};
             var primitiveVal = transform.toPrimitive(val);
 

@@ -48,7 +48,7 @@ describe('Encoding basics', function () {
             .addTransform({
                 type: 'SomeClass',
 
-                shouldTransformToPrimitive: function (type, val) {
+                shouldTransform: function (type, val) {
                     return val instanceof SomeClass;
                 },
 
@@ -59,7 +59,7 @@ describe('Encoding basics', function () {
             .addTransform({
                 type: 'function',
 
-                shouldTransformToPrimitive: function (type) {
+                shouldTransform: function (type) {
                     return type === 'function';
                 },
 
@@ -70,7 +70,7 @@ describe('Encoding basics', function () {
             .addTransform({
                 type: 'Error',
 
-                shouldTransformToPrimitive: function (type, val) {
+                shouldTransform: function (type, val) {
                     return val instanceof Error;
                 },
 
@@ -79,7 +79,7 @@ describe('Encoding basics', function () {
                 }
             });
 
-        var encoded = replicator.encode({
+        var obj = {
             someClassProp: new SomeClass(),
             otherObjects:  [
                 new Error('Hey ya!'),
@@ -93,7 +93,9 @@ describe('Encoding basics', function () {
                     numberProperty: 42
                 }
             ]
-        });
+        };
+
+        var encoded = replicator.encode(obj);
 
         assert.deepEqual(JSON.parse(encoded), {
             someClassProp: {
@@ -125,6 +127,51 @@ describe('Encoding basics', function () {
                     numberProperty: 42
                 }
             ]
+        });
+    });
+
+    it('Should not modify original object', function () {
+        var replicator = new Replicator();
+
+        var obj = {
+            someProp1: {
+                prop: ['Hey ya']
+            },
+            someProp2: ['yo']
+        };
+
+        replicator.addTransform({
+            type: 'array',
+
+            shouldTransform: function (type, val) {
+                return Array.isArray(val);
+            },
+
+            toPrimitive: function (val) {
+                return val[0];
+            }
+        });
+
+        var encoded = replicator.encode(obj);
+
+        assert.deepEqual(JSON.parse(encoded), {
+            someProp1: {
+                prop: {
+                    '@@type': 'array',
+                    data:     'Hey ya'
+                }
+            },
+            someProp2: {
+                '@@type': 'array',
+                data:     'yo'
+            }
+        });
+
+        assert.deepEqual(obj, {
+            someProp1: {
+                prop: ['Hey ya']
+            },
+            someProp2: ['yo']
         });
     });
 
