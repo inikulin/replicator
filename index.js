@@ -5,14 +5,15 @@ var KEY_REQUIRE_ESCAPING_RE = /^#*@(t|r)$/;
 
 
 // EncodingTransformer
-var EncodingTransformer = function (transforms) {
+var EncodingTransformer = function (val, transforms) {
+    this.rootVal                  = val;
     this.transforms               = transforms;
     this.circularCandidates       = [];
     this.circularCandidatesDescrs = [];
     this.circularRefCount         = 0;
 };
 
-EncodingTransformer._createRefObj = function (idx) {
+EncodingTransformer._createRefMark = function (idx) {
     var obj = {};
 
     obj[CIRCULAR_REF_KEY] = idx;
@@ -20,12 +21,20 @@ EncodingTransformer._createRefObj = function (idx) {
     return obj;
 };
 
-EncodingTransformer.prototype._applyTransform = function (val, transform) {
+EncodingTransformer.prototype._createCircularCandidate = function (val, parent, key) {
+    this.circularCandidates.push(val);
+    this.circularCandidatesDescrs.push({ parent: parent, key: key, refIdx: -1 });
+};
+
+EncodingTransformer.prototype._applyTransform = function (val, parent, key, transform) {
     var result          = {};
     var serializableVal = transform.toSerializable(val);
 
+    if (typeof serializableVal === 'object')
+        this._createCircularCandidate(val, parent, key);
+
     result[TRANSFORMED_TYPE_KEY] = transform.type;
-    result.data                  = this._handleValue(serializableVal, result, 'data');
+    result.data                  = this._handleValue(serializableVal, parent, key);
 
     return result;
 };
@@ -54,48 +63,59 @@ EncodingTransformer.prototype._handlePlainObject = function (obj) {
 };
 
 EncodingTransformer.prototype._handleObject = function (obj, parent, key) {
+    this._createCircularCandidate(obj, parent, key);
+
+    return Array.isArray(obj) ? this._handleArray(obj) : this._handlePlainObject(obj);
+};
+
+EncodingTransformer.prototype._ensureCircularReference = function (obj) {
     var circularCandidateIdx = this.circularCandidates.indexOf(obj);
 
-    if (circularCandidateIdx < 0) {
-        this.circularCandidates.push(obj);
-        this.circularCandidatesDescrs.push({ parent: parent, key: key, refIdx: -1 });
+    if (circularCandidateIdx > -1) {
+        var descr = this.circularCandidatesDescrs[circularCandidateIdx];
 
-        return Array.isArray(obj) ? this._handleArray(obj) : this._handlePlainObject(obj);
+        if (descr.refIdx === -1)
+            descr.refIdx = descr.parent ? ++this.circularRefCount : 0;
+
+        return EncodingTransformer._createRefMark(descr.refIdx);
     }
 
-    var descr = this.circularCandidatesDescrs[circularCandidateIdx];
-
-    if (descr.refIdx === -1)
-        descr.refIdx = descr.parent ? ++this.circularRefCount : 0;
-
-    return EncodingTransformer._createRefObj(descr.refIdx);
+    return null;
 };
 
 EncodingTransformer.prototype._handleValue = function (val, parent, key) {
-    var type = typeof val;
+    var type     = typeof val;
+    var isObject = type === 'object';
+
+    if (isObject) {
+        var refMark = this._ensureCircularReference(val);
+
+        if (refMark)
+            return refMark;
+    }
 
     for (var i = 0; i < this.transforms.length; i++) {
         var transform = this.transforms[i];
 
         if (transform.shouldTransform(type, val))
-            return this._applyTransform(val, transform);
+            return this._applyTransform(val, parent, key, transform);
     }
 
-    if (type === 'object')
+    if (isObject)
         return this._handleObject(val, parent, key);
 
     return val;
 };
 
-EncodingTransformer.prototype.transform = function (val) {
-    var references = [this._handleValue(val, null, null)];
+EncodingTransformer.prototype.transform = function () {
+    var references = [this._handleValue(this.rootVal, null, null)];
 
     for (var i = 0; i < this.circularCandidatesDescrs.length; i++) {
         var descr = this.circularCandidatesDescrs[i];
 
         if (descr.refIdx > 0) {
             references[descr.refIdx] = descr.parent[descr.key];
-            descr.parent[descr.key]  = EncodingTransformer._createRefObj(descr.refIdx);
+            descr.parent[descr.key]  = EncodingTransformer._createRefMark(descr.refIdx);
         }
     }
 
@@ -105,18 +125,18 @@ EncodingTransformer.prototype.transform = function (val) {
 
 // Replicator
 var Replicator = module.exports = function (serializer) {
-    this.transforms = [];
-    this.serializer = serializer || JSON;
+    this.transforms    = [];
+    this.transformsMap = {};
+    this.serializer    = serializer || JSON;
 };
 
 // Manage transforms
 Replicator.prototype.addTransform = function (transform) {
-    for (var i = 0; i < this.transforms.length; i++) {
-        if (this.transforms[i].type === transform.type)
-            throw new Error('Transform with type "' + transform.type + '" was already added.');
-    }
+    if (this.transformsMap[transform.type])
+        throw new Error('Transform with type "' + transform.type + '" was already added.');
 
     this.transforms.push(transform);
+    this.transformsMap[transform.type] = transform;
 
     return this;
 };
@@ -127,12 +147,14 @@ Replicator.prototype.removeTransform = function (transform) {
     if (idx > -1)
         this.transforms.splice(idx, 1);
 
+    delete this.transformsMap[transform.type];
+
     return this;
 };
 
 Replicator.prototype.encode = function (val) {
-    var transformer = new EncodingTransformer(this.transforms);
-    var transformed = transformer.transform(val);
+    var transformer = new EncodingTransformer(val, this.transforms);
+    var transformed = transformer.transform();
 
     return this.serializer.stringify(transformed);
 };

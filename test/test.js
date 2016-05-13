@@ -179,6 +179,10 @@ describe('Encoding basics', function () {
         var replicator = new Replicator();
         var obj        = {};
 
+        var SomeClass = function () {
+            this.arr = [];
+        };
+
         obj.a = obj;
 
         obj.b = {
@@ -194,6 +198,21 @@ describe('Encoding basics', function () {
         obj.d    = [obj, obj.c];
         obj.c.cb = obj.d;
 
+        obj.e = new SomeClass();
+        obj.e.arr.push(obj.e);
+
+        replicator.addTransform({
+            type: 'SomeClass',
+
+            shouldTransform: function (type, val) {
+                return val instanceof SomeClass;
+            },
+
+            toSerializable: function (val) {
+                return val.arr;
+            }
+        });
+
         var encoded = replicator.encode(obj);
 
         assert.deepEqual(JSON.parse(encoded), [
@@ -201,7 +220,8 @@ describe('Encoding basics', function () {
                 a: { '@r': 0 },
                 b: { '@r': 1 },
                 c: { '@r': 2 },
-                d: { '@r': 3 }
+                d: { '@r': 3 },
+                e: { '@r': 4 }
             },
             {
                 ba: 123,
@@ -215,7 +235,11 @@ describe('Encoding basics', function () {
             [
                 { '@r': 0 },
                 { '@r': 2 }
-            ]
+            ],
+            {
+                '@t': 'SomeClass',
+                data: [{ '@r': 4 }]
+            }
         ]);
     });
 
