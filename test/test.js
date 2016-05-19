@@ -28,7 +28,7 @@ it('Should raise error if transform already added', function () {
     }, /Transform with type "42" was already added/);
 });
 
-describe('Encoding basics', function () {
+describe('Encoding/decoding', function () {
     it('Should encode objects using transforms', function () {
         var replicator = new Replicator();
 
@@ -210,37 +210,29 @@ describe('Encoding basics', function () {
 
             toSerializable: function (val) {
                 return val.arr;
+            },
+
+            fromSerializable: function (val) {
+                var inst = new SomeClass();
+
+                inst.arr = val;
+
+                return inst;
             }
         });
 
-        var encoded = replicator.encode(obj);
+        var actual = replicator.decode(replicator.encode(obj));
 
-        assert.deepEqual(JSON.parse(encoded), [
-            {
-                a: { '@r': 0 },
-                b: { '@r': 1 },
-                c: { '@r': 2 },
-                d: { '@r': 3 },
-                e: { '@r': 4 }
-            },
-            {
-                ba: 123,
-                bb: { '@r': 0 },
-                bc: { '@r': 2 }
-            },
-            {
-                ca: { '@r': 1 },
-                cb: { '@r': 3 }
-            },
-            [
-                { '@r': 0 },
-                { '@r': 2 }
-            ],
-            {
-                '@t': 'SomeClass',
-                data: [{ '@r': 4 }]
-            }
-        ]);
+        assert.strictEqual(actual.a, actual);
+        assert.strictEqual(actual.b.ba, 123);
+        assert.strictEqual(actual.b.bb, actual);
+        assert.strictEqual(actual.c.ca, actual.b);
+        assert.strictEqual(actual.b.bc, actual.c);
+        assert.strictEqual(actual.d[0], actual);
+        assert.strictEqual(actual.d[1], actual.c);
+        assert.strictEqual(actual.c.cb, actual.d);
+        assert(actual.e instanceof SomeClass);
+        assert.strictEqual(actual.e.arr[0], actual.e);
     });
 
     it('Should escape object keys when necessary', function () {

@@ -124,9 +124,10 @@ EncodingTransformer.prototype.transform = function () {
 
 // DecodingTransform
 var DecodingTransformer = function (references, transformsMap) {
-    this.references   = references;
-    this.transformMap = transformsMap;
-    this.visitedRefs  = Object.create(null);
+    this.references            = references;
+    this.transformMap          = transformsMap;
+    this.activeTransformsStack = [];
+    this.visitedRefs           = Object.create(null);
 };
 
 DecodingTransformer.prototype._handlePlainObject = function (obj) {
@@ -156,18 +157,52 @@ DecodingTransformer.prototype._handleTransformedObject = function (obj, parent, 
     if (!transform)
         throw new Error('Can\'t find transform for "' + transformType + '" type.');
 
+    this.activeTransformsStack.push(obj);
     this._handleValue(obj.data, obj, 'data');
+    this.activeTransformsStack.pop();
 
     parent[key] = transform.fromSerializable(obj.data);
 };
 
-DecodingTransformer.prototype._handleCircularRef = function (refIdx, parent, key) {
-    if (!this.visitedRefs[refIdx]) {
-        this.visitedRefs[refIdx] = true;
-        this._handleValue(this.references[refIdx], this.references, refIdx);
-    }
+DecodingTransformer.prototype._handleCircularSelfRefDuringTransform = function (refIdx, parent, key) {
+    // NOTE: we've hit a hard case: object reference itself during transformation.
+    // We can't dereference it since we don't have resulting object yet. And we'll
+    // not be able to restore reference lately because we will need to traverse
+    // transformed object again and reference might be unreachable or new object contain
+    // new circular references. As a workaround we create getter, so once transformation
+    // complete, dereferenced property will point to correct transformed object.
+    var references = this.references;
 
-    parent[key] = this.references[refIdx];
+    Object.defineProperty(parent, key, {
+        val:          void 0,
+        configurable: true,
+        enumerable:   true,
+
+        get: function () {
+            if (this.val === void 0)
+                this.val = references[refIdx];
+
+            return this.val;
+        },
+
+        set: function (value) {
+            this.val = value;
+        }
+    });
+};
+
+DecodingTransformer.prototype._handleCircularRef = function (refIdx, parent, key) {
+    if (this.activeTransformsStack.indexOf(this.references[refIdx]) > -1)
+        this._handleCircularSelfRefDuringTransform(refIdx, parent, key);
+
+    else {
+        if (!this.visitedRefs[refIdx]) {
+            this.visitedRefs[refIdx] = true;
+            this._handleValue(this.references[refIdx], this.references, refIdx);
+        }
+
+        parent[key] = this.references[refIdx];
+    }
 };
 
 DecodingTransformer.prototype._handleValue = function (val, parent, key) {
