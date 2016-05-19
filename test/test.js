@@ -244,21 +244,17 @@ describe('Encoding basics', function () {
     });
 
     it('Should escape object keys when necessary', function () {
-        var replicator = new Replicator();
-        var encoded    = replicator.encode({
+        var obj = {
             '@t':    1,
             '###@t': 2,
             '#@t':   3,
             '@r':    4,
             '##@r':  5
-        });
+        };
 
-        assert.deepEqual(JSON.parse(encoded), [{
-            '#@t':    1,
-            '####@t': 2,
-            '##@t':   3,
-            '#@r':    4,
-            '###@r':  5
-        }]);
+        var replicator = new Replicator();
+        var actual     = replicator.decode(replicator.encode(obj));
+
+        assert.deepEqual(actual, obj);
     });
 });

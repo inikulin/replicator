@@ -4,7 +4,9 @@
   "description": "JavaScript objects serialization on steroids.",
   "main": "index.js",
   "scripts": {
-    "test": "eslint index.js test && mocha"
+    "test": "eslint index.js test && mocha",
+    "publish-please": "publish-please",
+    "prepublish": "publish-please guard"
   },
   "repository": {
     "type": "git",
@@ -20,7 +22,10 @@
     "structured",
     "clone"
   ],
-  "author": "Ivan Nikulin (ifaaan@gmail.com)",
+  "author": {
+    "name": "Ivan Nikulin",
+    "url": "ifaaan@gmail.com"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/inikulin/replicator/issues"
@@ -31,6 +36,7 @@
   "homepage": "https://github.com/inikulin/replicator#readme",
   "devDependencies": {
     "eslint": "^2.9.0",
-    "mocha": "^2.4.5"
+    "mocha": "^2.4.5",
+    "publish-please": "^2.1.0"
   }
 }
