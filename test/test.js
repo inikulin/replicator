@@ -6,6 +6,9 @@ it('Should add and remove transforms', function () {
     var transform1 = { type: 'transform1' };
     var transform2 = { type: 'transform2' };
 
+    replicator.transforms    = [];
+    replicator.transformsMap = {};
+
     replicator
         .addTransform(transform1)
         .addTransform(transform2);
@@ -47,54 +50,56 @@ describe('Encoding/decoding', function () {
         };
 
         replicator
-            .addTransform({
-                type: 'SomeClass',
+            .addTransform([
+                {
+                    type: 'SomeClass',
 
-                shouldTransform: function (type, val) {
-                    return val instanceof SomeClass;
+                    shouldTransform: function (type, val) {
+                        return val instanceof SomeClass;
+                    },
+
+                    toSerializable: function (val) {
+                        return [val.func1, val.func2];
+                    },
+
+                    fromSerializable: function (val) {
+                        return {
+                            func1: val[0],
+                            func2: val[1]
+                        };
+                    }
                 },
+                {
+                    type: 'function',
 
-                toSerializable: function (val) {
-                    return [val.func1, val.func2];
+                    shouldTransform: function (type) {
+                        return type === 'function';
+                    },
+
+                    toSerializable: function (val) {
+                        return val.toString().replace(/\s/g, '');
+                    },
+
+                    fromSerializable: function (val) {
+                        return eval('(' + val + ')');
+                    }
                 },
+                {
+                    type: 'Error',
 
-                fromSerializable: function (val) {
-                    return {
-                        func1: val[0],
-                        func2: val[1]
-                    };
+                    shouldTransform: function (type, val) {
+                        return val instanceof Error;
+                    },
+
+                    toSerializable: function (val) {
+                        return val.message;
+                    },
+
+                    fromSerializable: function (val) {
+                        return new Error(val);
+                    }
                 }
-            })
-            .addTransform({
-                type: 'function',
-
-                shouldTransform: function (type) {
-                    return type === 'function';
-                },
-
-                toSerializable: function (val) {
-                    return val.toString().replace(/\s/g, '');
-                },
-
-                fromSerializable: function (val) {
-                    return eval('(' + val + ')');
-                }
-            })
-            .addTransform({
-                type: 'Error',
-
-                shouldTransform: function (type, val) {
-                    return val instanceof Error;
-                },
-
-                toSerializable: function (val) {
-                    return val.message;
-                },
-
-                fromSerializable: function (val) {
-                    return new Error(val);
-                }
-            });
+            ]);
 
         var obj = {
             someClassProp: new SomeClass(),
@@ -119,7 +124,7 @@ describe('Encoding/decoding', function () {
         assert(actual.otherObjects[0] instanceof Error);
         assert.strictEqual(actual.otherObjects[0].message, 'Hey ya!');
         assert.strictEqual(actual.otherObjects[1](), '42');
-        
+
         assert.deepEqual(actual.otherObjects[2], {
             strProperty:    'yo',
             numberProperty: 42
@@ -238,5 +243,59 @@ describe('Encoding/decoding', function () {
         var actual     = replicator.decode(replicator.encode(obj));
 
         assert.deepEqual(actual, obj);
+    });
+});
+
+describe('Built-in transforms', function () {
+    var replicator = new Replicator();
+
+    it('Should transform NaN', function () {
+        var actual = replicator.decode(replicator.encode(NaN));
+
+        assert.strictEqual(typeof actual, 'number');
+        assert(isNaN(actual));
+    });
+
+    it('Should transform undefined', function () {
+        var actual = replicator.decode(replicator.encode({ obj: void 0 }));
+
+        assert.strictEqual(actual.obj, void 0);
+    });
+
+    it('Should transform Date', function () {
+        var actual = replicator.decode(replicator.encode(new Date(2016, 5, 6)));
+
+        assert(actual instanceof Date);
+        assert.strictEqual(actual.getFullYear(), 2016);
+        assert.strictEqual(actual.getMonth(), 5);
+    });
+
+    it('Should transform RegExp', function () {
+        var actual = replicator.decode(replicator.encode(/\d+/gim));
+
+        assert(actual instanceof RegExp);
+        assert.strictEqual(actual.source, '\\d+');
+        assert.strictEqual(actual.global, true);
+        assert.strictEqual(actual.ignoreCase, true);
+        assert.strictEqual(actual.multiline, true);
+    });
+
+    it('Should transform Error', function () {
+        var obj = {
+            error:       new Error('err1'),
+            syntaxError: new SyntaxError('err2')
+        };
+
+        obj.error.stack       = 'stack1';
+        obj.syntaxError.stack = 'stack2';
+
+        var actual = replicator.decode(replicator.encode(obj));
+
+        assert(actual.error instanceof Error);
+        assert(actual.syntaxError instanceof SyntaxError);
+        assert.strictEqual(actual.error.toString(), 'Error: err1');
+        assert.strictEqual(actual.syntaxError.toString(), 'SyntaxError: err2');
+        assert.strictEqual(actual.error.stack, 'stack1');
+        assert.strictEqual(actual.syntaxError.stack, 'stack2');
     });
 });

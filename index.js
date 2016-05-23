@@ -3,6 +3,13 @@ var TRANSFORMED_TYPE_KEY    = '@t';
 var CIRCULAR_REF_KEY        = '@r';
 var KEY_REQUIRE_ESCAPING_RE = /^#*@(t|r)$/;
 
+var GLOBAL = (function getGlobal () {
+    // NOTE: see http://www.ecma-international.org/ecma-262/6.0/index.html#sec-performeval step 10
+    var savedEval = eval;
+
+    return savedEval('this');
+})();
+
 
 // EncodingTransformer
 var EncodingTransformer = function (val, transforms) {
@@ -85,7 +92,7 @@ EncodingTransformer.prototype._ensureCircularReference = function (obj) {
 
 EncodingTransformer.prototype._handleValue = function (val, parent, key) {
     var type     = typeof val;
-    var isObject = type === 'object';
+    var isObject = type === 'object' && val !== null;
 
     if (isObject) {
         var refMark = this._ensureCircularReference(val);
@@ -206,7 +213,7 @@ DecodingTransformer.prototype._handleCircularRef = function (refIdx, parent, key
 };
 
 DecodingTransformer.prototype._handleValue = function (val, parent, key) {
-    if (typeof val !== 'object')
+    if (typeof val !== 'object' || val === null)
         return;
 
     var refIdx = val[CIRCULAR_REF_KEY];
@@ -234,31 +241,150 @@ DecodingTransformer.prototype.transform = function () {
 };
 
 
+// Transforms
+var builtInTransforms = [
+    {
+        type: '[[NaN]]',
+
+        shouldTransform: function (type, val) {
+            return type === 'number' && isNaN(val);
+        },
+
+        toSerializable: function () {
+            return '';
+        },
+
+        fromSerializable: function () {
+            return NaN;
+        }
+    },
+
+    {
+        type: '[[undefined]]',
+
+        shouldTransform: function (type) {
+            return type === 'undefined';
+        },
+
+        toSerializable: function () {
+            return '';
+        },
+
+        fromSerializable: function () {
+            return void 0;
+        }
+    },
+    {
+        type: '[[Date]]',
+
+        shouldTransform: function (type, val) {
+            return val instanceof Date;
+        },
+
+        toSerializable: function (val) {
+            return val.getTime();
+        },
+
+        fromSerializable: function (val) {
+            var date = new Date();
+
+            date.setTime(val);
+            return date;
+        }
+    },
+    {
+        type: '[[RegExp]]',
+
+        shouldTransform: function (type, val) {
+            return val instanceof RegExp;
+        },
+
+        toSerializable: function (val) {
+            var result = {
+                src:   val.source,
+                flags: ''
+            };
+
+            if (val.global)
+                result.flags += 'g';
+
+            if (val.ignoreCase)
+                result.flags += 'i';
+
+            if (val.multiline)
+                result.flags += 'm';
+
+            return result;
+        },
+
+        fromSerializable: function (val) {
+            return new RegExp(val.src, val.flags);
+        }
+    },
+
+    {
+        type: '[[Error]]',
+
+        shouldTransform: function (type, val) {
+            return val instanceof Error;
+        },
+
+        toSerializable: function (val) {
+            return {
+                name:    val.name,
+                message: val.message,
+                stack:   val.stack
+            };
+        },
+
+        fromSerializable: function (val) {
+            var Ctor = GLOBAL[val.name] || Error;
+            var err  = new Ctor(val.message);
+
+            err.stack = val.stack;
+            return err;
+        }
+    }
+];
+
 // Replicator
 var Replicator = module.exports = function (serializer) {
     this.transforms    = [];
     this.transformsMap = Object.create(null);
     this.serializer    = serializer || JSON;
+
+    this.addTransform(builtInTransforms);
 };
 
 // Manage transforms
-Replicator.prototype.addTransform = function (transform) {
-    if (this.transformsMap[transform.type])
-        throw new Error('Transform with type "' + transform.type + '" was already added.');
+Replicator.prototype.addTransform = function (transforms) {
+    transforms = Array.isArray(transforms) ? transforms : [transforms];
 
-    this.transforms.push(transform);
-    this.transformsMap[transform.type] = transform;
+    for (var i = 0; i < transforms.length; i++) {
+        var transform = transforms[i];
+
+        if (this.transformsMap[transform.type])
+            throw new Error('Transform with type "' + transform.type + '" was already added.');
+
+        this.transforms.push(transform);
+        this.transformsMap[transform.type] = transform;
+    }
 
     return this;
 };
 
-Replicator.prototype.removeTransform = function (transform) {
-    var idx = this.transforms.indexOf(transform);
+Replicator.prototype.removeTransform = function (transforms) {
+    transforms = Array.isArray(transforms) ? transforms : [transforms];
 
-    if (idx > -1)
-        this.transforms.splice(idx, 1);
+    for (var i = 0; i < transforms.length; i++) {
+        var transform = transforms[i];
+        var idx       = this.transforms.indexOf(transform);
 
-    delete this.transformsMap[transform.type];
+        if (idx > -1)
+            this.transforms.splice(idx, 1);
+
+        delete this.transformsMap[transform.type];
+    }
 
     return this;
 };
