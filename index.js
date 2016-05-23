@@ -10,6 +10,10 @@ var GLOBAL = (function getGlobal () {
     return savedEval('this');
 })();
 
+var TYPED_ARRAYS_SUPPORTED = typeof ArrayBuffer === 'function';
+
+// Saved proto functions
+var arrSlice = Array.prototype.slice;
 
 // EncodingTransformer
 var EncodingTransformer = function (val, transforms) {
@@ -344,6 +348,33 @@ var builtInTransforms = [
             err.stack = val.stack;
             return err;
         }
+    },
+
+    {
+        type: '[[ArrayBuffer]]',
+
+        shouldTransform: function (type, val) {
+            return TYPED_ARRAYS_SUPPORTED && val instanceof ArrayBuffer;
+        },
+
+        toSerializable: function (val) {
+            var view = new Int8Array(val);
+
+            return arrSlice.call(view);
+        },
+
+        fromSerializable: function (val) {
+            if (TYPED_ARRAYS_SUPPORTED) {
+                var buffer = new ArrayBuffer(val.length);
+                var view   = new Int8Array(buffer);
+
+                view.set(val);
+
+                return buffer;
+            }
+
+            return val;
+        }
     }
 ];
 
@@ -353,11 +384,11 @@ var Replicator = module.exports = function (serializer) {
     this.transformsMap = Object.create(null);
     this.serializer    = serializer || JSON;
 
-    this.addTransform(builtInTransforms);
+    this.addTransforms(builtInTransforms);
 };
 
 // Manage transforms
-Replicator.prototype.addTransform = function (transforms) {
+Replicator.prototype.addTransforms = function (transforms) {
     transforms = Array.isArray(transforms) ? transforms : [transforms];
 
     for (var i = 0; i < transforms.length; i++) {
@@ -373,7 +404,7 @@ Replicator.prototype.addTransform = function (transforms) {
     return this;
 };
 
-Replicator.prototype.removeTransform = function (transforms) {
+Replicator.prototype.removeTransforms = function (transforms) {
     transforms = Array.isArray(transforms) ? transforms : [transforms];
 
     for (var i = 0; i < transforms.length; i++) {

@@ -10,12 +10,12 @@ it('Should add and remove transforms', function () {
     replicator.transformsMap = {};
 
     replicator
-        .addTransform(transform1)
-        .addTransform(transform2);
+        .addTransforms(transform1)
+        .addTransforms(transform2);
 
     assert.deepEqual(replicator.transforms, [transform1, transform2]);
 
-    replicator.removeTransform(transform1);
+    replicator.removeTransforms(transform1);
 
     assert.deepEqual(replicator.transforms, [transform2]);
 });
@@ -24,10 +24,10 @@ it('Should raise error if transform already added', function () {
     var replicator = new Replicator();
     var transform  = { type: '42' };
 
-    replicator.addTransform(transform);
+    replicator.addTransforms(transform);
 
     assert.throws(function () {
-        replicator.addTransform(transform);
+        replicator.addTransforms(transform);
     }, /Transform with type "42" was already added/);
 });
 
@@ -50,7 +50,7 @@ describe('Encoding/decoding', function () {
         };
 
         replicator
-            .addTransform([
+            .addTransforms([
                 {
                     type: 'SomeClass',
 
@@ -142,7 +142,7 @@ describe('Encoding/decoding', function () {
             someProp2: ['yo']
         };
 
-        replicator.addTransform({
+        replicator.addTransforms({
             type: 'single-item-array',
 
             shouldTransform: function (type, val) {
@@ -196,7 +196,7 @@ describe('Encoding/decoding', function () {
         obj.e = new SomeClass();
         obj.e.arr.push(obj.e);
 
-        replicator.addTransform({
+        replicator.addTransforms({
             type: 'SomeClass',
 
             shouldTransform: function (type, val) {
@@ -297,5 +297,20 @@ describe('Built-in transforms', function () {
         assert.strictEqual(actual.syntaxError.toString(), 'SyntaxError: err2');
         assert.strictEqual(actual.error.stack, 'stack1');
         assert.strictEqual(actual.syntaxError.stack, 'stack2');
+    });
+
+    it('Should transform ArrayBuffer', function () {
+        var buf  = new ArrayBuffer(4 * 2);
+        var view = new Uint32Array(buf);
+
+        view.set([5500, 2000]);
+
+        var actual     = replicator.decode(replicator.encode(buf));
+        var actualView = new Uint32Array(actual);
+
+        assert(actual instanceof ArrayBuffer);
+        assert.strictEqual(actualView.length, 2);
+        assert.strictEqual(actualView[0], 5500);
+        assert.strictEqual(actualView[1], 2000);
     });
 });
