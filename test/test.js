@@ -29,11 +29,13 @@ it('Should raise error if transform already added', function () {
 });
 
 describe('Encoding/decoding', function () {
-    it('Should encode objects using transforms', function () {
+    it('Should encode and restore objects using transforms', function () {
         var replicator = new Replicator();
 
-        var SomeClass = function () {
+        replicator.transforms    = [];
+        replicator.transformsMap = {};
 
+        var SomeClass = function () {
         };
 
         SomeClass.prototype.func1 = function () {
@@ -54,6 +56,13 @@ describe('Encoding/decoding', function () {
 
                 toSerializable: function (val) {
                     return [val.func1, val.func2];
+                },
+
+                fromSerializable: function (val) {
+                    return {
+                        func1: val[0],
+                        func2: val[1]
+                    };
                 }
             })
             .addTransform({
@@ -65,6 +74,10 @@ describe('Encoding/decoding', function () {
 
                 toSerializable: function (val) {
                     return val.toString().replace(/\s/g, '');
+                },
+
+                fromSerializable: function (val) {
+                    return eval('(' + val + ')');
                 }
             })
             .addTransform({
@@ -76,6 +89,10 @@ describe('Encoding/decoding', function () {
 
                 toSerializable: function (val) {
                     return val.message;
+                },
+
+                fromSerializable: function (val) {
+                    return new Error(val);
                 }
             });
 
@@ -95,39 +112,19 @@ describe('Encoding/decoding', function () {
             ]
         };
 
-        var encoded = replicator.encode(obj);
+        var actual = replicator.decode(replicator.encode(obj));
 
-        assert.deepEqual(JSON.parse(encoded), [{
-            someClassProp: {
-                '@t': 'SomeClass',
+        assert.strictEqual(actual.someClassProp.func1(), 'yo1');
+        assert.strictEqual(actual.someClassProp.func2(), 'yo2');
+        assert(actual.otherObjects[0] instanceof Error);
+        assert.strictEqual(actual.otherObjects[0].message, 'Hey ya!');
+        assert.strictEqual(actual.otherObjects[1](), '42');
+        
+        assert.deepEqual(actual.otherObjects[2], {
+            strProperty:    'yo',
+            numberProperty: 42
+        });
 
-                data: [
-                    {
-                        '@t': 'function',
-                        data: "function(){return'yo1';}"
-                    },
-                    {
-                        '@t': 'function',
-                        data: "function(){return'yo2';}"
-                    }
-                ]
-            },
-
-            otherObjects: [
-                {
-                    '@t': 'Error',
-                    data: 'Hey ya!'
-                },
-                {
-                    '@t': 'function',
-                    data: "function(){return'42';}"
-                },
-                {
-                    strProperty:    'yo',
-                    numberProperty: 42
-                }
-            ]
-        }]);
     });
 
     it('Should not modify original object', function () {
@@ -141,31 +138,24 @@ describe('Encoding/decoding', function () {
         };
 
         replicator.addTransform({
-            type: 'array',
+            type: 'single-item-array',
 
             shouldTransform: function (type, val) {
-                return Array.isArray(val);
+                return Array.isArray(val) && val.length === 1;
             },
 
             toSerializable: function (val) {
                 return val[0];
+            },
+
+            fromSerializable: function (val) {
+                return [val];
             }
         });
 
-        var encoded = replicator.encode(obj);
+        var actual = replicator.decode(replicator.encode(obj));
 
-        assert.deepEqual(JSON.parse(encoded), [{
-            someProp1: {
-                prop: {
-                    '@t': 'array',
-                    data: 'Hey ya'
-                }
-            },
-            someProp2: {
-                '@t': 'array',
-                data: 'yo'
-            }
-        }]);
+        assert.deepEqual(actual, obj);
 
         assert.deepEqual(obj, {
             someProp1: {
