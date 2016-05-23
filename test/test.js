@@ -313,4 +313,23 @@ describe('Built-in transforms', function () {
         assert.strictEqual(actualView[0], 5500);
         assert.strictEqual(actualView[1], 2000);
     });
+
+    it('Should transform TypedArray', function () {
+        var actual = replicator.decode(replicator.encode({
+            uint8:   new Uint8Array([1, 230]),
+            float32: new Float32Array([4.23, 9, 2.45]),
+            int32:   new Int32Array([-3, 9000])
+        }));
+
+        assert(actual.uint8 instanceof Uint8Array);
+        assert(actual.float32 instanceof Float32Array);
+        assert(actual.int32 instanceof Int32Array);
+        assert.strictEqual(actual.uint8.length, 2);
+        assert.strictEqual(actual.float32.length, 3);
+        assert.strictEqual(actual.int32.length, 2);
+
+        assert(Math.abs(actual.float32[2] - 2.45) < 0.0000001);
+        assert.strictEqual(actual.int32[0], -3);
+        assert.strictEqual(actual.int32[1], 9000);
+    });
 });

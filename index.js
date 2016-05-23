@@ -375,6 +375,38 @@ var builtInTransforms = [
 
             return val;
         }
+    },
+
+    {
+        type: '[[TypedArray]]',
+
+        shouldTransform: function (type, val) {
+            return TYPED_ARRAYS_SUPPORTED && (
+                    val instanceof Int8Array ||
+                    val instanceof Uint8Array ||
+                    val instanceof Uint8ClampedArray ||
+                    val instanceof Int16Array ||
+                    val instanceof Uint16Array ||
+                    val instanceof Int32Array ||
+                    val instanceof Uint32Array ||
+                    val instanceof Float32Array ||
+                    val instanceof Float64Array
+                );
+        },
+
+        toSerializable: function (val) {
+            return {
+                ctorName: val.constructor.name,
+                arr:      arrSlice.call(val)
+            };
+        },
+
+        fromSerializable: function (val) {
+            if (TYPED_ARRAYS_SUPPORTED)
+                return new GLOBAL[val.ctorName](val.arr);
+
+            return val.arr;
+        }
     }
 ];
 
