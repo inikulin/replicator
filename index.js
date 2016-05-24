@@ -12,6 +12,7 @@ var GLOBAL = (function getGlobal () {
 
 var TYPED_ARRAY_SUPPORTED = typeof ArrayBuffer === 'function';
 var MAP_SUPPORTED         = typeof Map === 'function';
+var SET_SUPPORTED         = typeof Set === 'function';
 
 // Saved proto functions
 var arrSlice = Array.prototype.slice;
@@ -445,6 +446,38 @@ var builtInTransforms = [
                 kvArr.push([val[i], val[i + 1]]);
 
             return kvArr;
+        }
+    },
+
+    {
+        type: '[[Set]]',
+
+        shouldTransform: function (type, val) {
+            return SET_SUPPORTED && val instanceof Set;
+        },
+
+        toSerializable: function (set) {
+            var arr = [];
+
+            set.forEach(function (val) {
+                arr.push(val);
+            });
+
+            return arr;
+        },
+
+        fromSerializable: function (val) {
+            if (SET_SUPPORTED) {
+                // NOTE: new Set(iterable) is not supported by all browsers
+                var set = new Set();
+
+                for (var i = 0; i < val.length; i++)
+                    set.add(val[i]);
+
+                return set;
+            }
+
+            return val;
         }
     }
 ];

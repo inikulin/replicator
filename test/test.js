@@ -334,6 +334,9 @@ describe('Built-in transforms', function () {
     });
 
     it('Should transform Map', function () {
+        if (typeof Map !== 'function')
+            return;
+
         var map    = new Map();
         var arrKey = [1, 2, 3];
         var reKey  = /(123).*/i;
@@ -349,5 +352,29 @@ describe('Built-in transforms', function () {
 
         assert.strictEqual(actual.map.get(actual.arrKey), 'value1');
         assert.strictEqual(actual.map.get(actual.reKey), 'value2');
+    });
+
+    it('Should transform Set', function () {
+        if (typeof Set !== 'function')
+            return;
+
+        var set = new Set();
+        var re  = /(123).*/i;
+        var str = 'Some text';
+
+        set.add(42);
+        set.add(str);
+        set.add(re);
+
+        var actual = replicator.decode(replicator.encode({
+            re:  re,
+            str: str,
+            set: set
+        }));
+
+        assert(actual.set.has(42));
+        assert(actual.set.has(actual.str));
+        assert(actual.set.has(actual.re));
+        assert(!actual.set.has('yo'));
     });
 });
