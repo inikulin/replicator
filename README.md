@@ -17,7 +17,7 @@
   - `Set`<sup>[3](#note3)</sup>
   - `ArrayBuffer`<sup>[3](#note4)</sup>
   - Typed arrays<sup>[3](#note5)</sup>
-- Can be extended with custom type transforms
+- Can be extended with [custom type transforms](#adding-custom-types-support)
 - Can use any target serializer under the hood (JSON, BSON, protobuf, etc.)
 
 ----
@@ -46,6 +46,67 @@ const obj = replicator.decode(str);
 
 
 ## Adding custom types support
+You can extend `replicator` with custom type transform which will describe how to serialize/deserialize objects. You can
+add transforms using `.addTransforms(transforms)` method. And remove them using `.removeTransforms(transforms)` method.
+Both methods are chainable and accept single transform or array of transforms. You should add transforms to both encoding
+and decoding instances of `replicator`.
+
+Let's create transform which will encode `NodeList` of elements and decode it as array of objects with `tagName` property:
+```js
+const Replicator = require('replicator');
+
+const replicator = new Replicator();
+
+replicator.addTransforms([
+    {
+        type: 'NodeList',
+
+        shouldTransform (type, val) {
+            return typeof NodeList === 'function' && val instanceof NodeList;
+        },
+
+        toSerializable (nodeList) {
+            // We should transform NodeList to primitive serializable object.
+            // It's an array of HTMLElement in our case.
+            // Note that it's not required to transform each element in
+            // NodeList. We can add HTMLElement transform which
+            // will transform NodeList items and individual elements as well.
+            return Array.prototype.slice.call(nodeList);
+        },
+
+        fromSerializable (val){
+            // Now we should describe how to restore NodeList from serializable object.
+            // In our case we just need an array so we'll return it as is.
+            // If you want to restore it as NodeList you can create document fragment, append
+            // array contents to it and return result of `fragment.querySelectorAll('*')` .
+            return val;
+        }
+    },
+
+    {
+        type: 'Element',
+
+        shouldTransform (type, val){
+            return typeof HTMLElement === 'function' && val instanceof HTMLElement;
+        },
+
+        toSerializable (element) {
+            return element.tagName;
+        },
+
+        fromSerializable (val) {
+            return { tagName: val };
+        }
+    }
+]);
+
+var str = replicator.encode(document.querySelectorAll('div'));
+
+console.log(replicator.decode(str));
+// > [ { tagName: 'div'}, { tagName: 'div'}, { tagName: 'div'}]
+```
+
+Built-in types support implemented using transforms, so you can take a look on `replicator` source code for more examples.
 
 ## Changing serialization format
 
