@@ -1,7 +1,7 @@
 {
   "name": "replicator",
   "version": "1.0.0",
-  "description": "JavaScript objects serialization on steroids.",
+  "description": "Advanced JavaScript objects serialization.",
   "main": "index.js",
   "scripts": {
     "test": "eslint index.js test && mocha",
