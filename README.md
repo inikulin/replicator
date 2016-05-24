@@ -31,6 +31,18 @@ npm install replicator
 ```
 
 ## Usage
+```js
+const Replicator = require('replicator');
+
+const replicator = new Replicator();
+
+const str = replicator.encode({
+    key1: new Set([1, 2, 3]),
+    key2: /\s+/ig
+});
+
+const obj = replicator.decode(str);
+```
 
 
 ## Adding custom types support
