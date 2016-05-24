@@ -332,4 +332,22 @@ describe('Built-in transforms', function () {
         assert.strictEqual(actual.int32[0], -3);
         assert.strictEqual(actual.int32[1], 9000);
     });
+
+    it('Should transform Map', function () {
+        var map    = new Map();
+        var arrKey = [1, 2, 3];
+        var reKey  = /(123).*/i;
+
+        map.set(arrKey, 'value1');
+        map.set(reKey, 'value2');
+
+        var actual = replicator.decode(replicator.encode({
+            arrKey: arrKey,
+            reKey:  reKey,
+            map:    map
+        }));
+
+        assert.strictEqual(actual.map.get(actual.arrKey), 'value1');
+        assert.strictEqual(actual.map.get(actual.reKey), 'value2');
+    });
 });

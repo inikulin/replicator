@@ -10,7 +10,8 @@ var GLOBAL = (function getGlobal () {
     return savedEval('this');
 })();
 
-var TYPED_ARRAYS_SUPPORTED = typeof ArrayBuffer === 'function';
+var TYPED_ARRAY_SUPPORTED = typeof ArrayBuffer === 'function';
+var MAP_SUPPORTED         = typeof Map === 'function';
 
 // Saved proto functions
 var arrSlice = Array.prototype.slice;
@@ -285,8 +286,8 @@ var builtInTransforms = [
             return val instanceof Date;
         },
 
-        toSerializable: function (val) {
-            return val.getTime();
+        toSerializable: function (date) {
+            return date.getTime();
         },
 
         fromSerializable: function (val) {
@@ -303,19 +304,19 @@ var builtInTransforms = [
             return val instanceof RegExp;
         },
 
-        toSerializable: function (val) {
+        toSerializable: function (re) {
             var result = {
-                src:   val.source,
+                src:   re.source,
                 flags: ''
             };
 
-            if (val.global)
+            if (re.global)
                 result.flags += 'g';
 
-            if (val.ignoreCase)
+            if (re.ignoreCase)
                 result.flags += 'i';
 
-            if (val.multiline)
+            if (re.multiline)
                 result.flags += 'm';
 
             return result;
@@ -333,11 +334,11 @@ var builtInTransforms = [
             return val instanceof Error;
         },
 
-        toSerializable: function (val) {
+        toSerializable: function (err) {
             return {
-                name:    val.name,
-                message: val.message,
-                stack:   val.stack
+                name:    err.name,
+                message: err.message,
+                stack:   err.stack
             };
         },
 
@@ -354,17 +355,17 @@ var builtInTransforms = [
         type: '[[ArrayBuffer]]',
 
         shouldTransform: function (type, val) {
-            return TYPED_ARRAYS_SUPPORTED && val instanceof ArrayBuffer;
+            return TYPED_ARRAY_SUPPORTED && val instanceof ArrayBuffer;
         },
 
-        toSerializable: function (val) {
-            var view = new Int8Array(val);
+        toSerializable: function (buffer) {
+            var view = new Int8Array(buffer);
 
             return arrSlice.call(view);
         },
 
         fromSerializable: function (val) {
-            if (TYPED_ARRAYS_SUPPORTED) {
+            if (TYPED_ARRAY_SUPPORTED) {
                 var buffer = new ArrayBuffer(val.length);
                 var view   = new Int8Array(buffer);
 
@@ -381,7 +382,7 @@ var builtInTransforms = [
         type: '[[TypedArray]]',
 
         shouldTransform: function (type, val) {
-            return TYPED_ARRAYS_SUPPORTED && (
+            return TYPED_ARRAY_SUPPORTED && (
                     val instanceof Int8Array ||
                     val instanceof Uint8Array ||
                     val instanceof Uint8ClampedArray ||
@@ -394,18 +395,56 @@ var builtInTransforms = [
                 );
         },
 
-        toSerializable: function (val) {
+        toSerializable: function (arr) {
             return {
-                ctorName: val.constructor.name,
-                arr:      arrSlice.call(val)
+                ctorName: arr.constructor.name,
+                arr:      arrSlice.call(arr)
             };
         },
 
         fromSerializable: function (val) {
-            if (TYPED_ARRAYS_SUPPORTED)
+            if (TYPED_ARRAY_SUPPORTED)
                 return new GLOBAL[val.ctorName](val.arr);
 
             return val.arr;
+        }
+    },
+
+    {
+        type: '[[Map]]',
+
+        shouldTransform: function (type, val) {
+            return MAP_SUPPORTED && val instanceof Map;
+        },
+
+        toSerializable: function (map) {
+            var flattenedKVArr = [];
+
+            map.forEach(function (val, key) {
+                flattenedKVArr.push(key);
+                flattenedKVArr.push(val);
+            });
+
+            return flattenedKVArr;
+        },
+
+        fromSerializable: function (val) {
+            if (MAP_SUPPORTED) {
+                // NOTE: new Map(iterable) is not supported by all browsers
+                var map = new Map();
+
+                for (var i = 0; i < val.length; i += 2)
+                    map.set(val[i], val[i + 1]);
+
+                return map;
+            }
+
+            var kvArr = [];
+
+            for (var j = 0; j < val.length; j += 2)
+                kvArr.push([val[i], val[i + 1]]);
+
+            return kvArr;
         }
     }
 ];
