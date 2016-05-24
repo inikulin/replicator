@@ -6,6 +6,11 @@
 <p align="center">
 <i>Advanced JavaScript objects serialization</i>
 </p>
+<p align="center">
+  <a href="https://travis-ci.org/inikulin/replicator"><img alt="Build Status" src="https://api.travis-ci.org/inikulin/replicator.svg"></a>
+  <a href="https://www.npmjs.com/package/replicator"><img alt="NPM Version" src="https://img.shields.io/npm/v/replicator.svg"></a>
+</p>
+
 - Can serialize circular references
 - In addition to JSON-serializable types can serialize:
   - `undefined`
@@ -17,8 +22,8 @@
   - `Set`<sup>[3](#note3)</sup>
   - `ArrayBuffer`<sup>[3](#note4)</sup>
   - Typed arrays<sup>[3](#note5)</sup>
-- Can be extended with [custom type transforms](#adding-custom-types-support)
-- Can use any target serializer under the hood (JSON, BSON, protobuf, etc.)
+- [Can be extended with custom type transforms](#adding-custom-types-support)
+- [Can use any target serializer under the hood](#changing-serialization-format) (JSON, BSON, protobuf, etc.)
 
 ----
 <a name="note1">1</a>: If decoding target platform doesn't support encoded error type, it will fallback to `Error` constructor.<br>
@@ -36,9 +41,13 @@ const Replicator = require('replicator');
 
 const replicator = new Replicator();
 
+const a = {};
+a.b = a;
+
 const str = replicator.encode({
     key1: new Set([1, 2, 3]),
-    key2: /\s+/ig
+    key2: /\s+/ig,
+    key3: a
 });
 
 const obj = replicator.decode(str);
@@ -109,6 +118,23 @@ console.log(replicator.decode(str));
 Built-in types support implemented using transforms, so you can take a look on `replicator` source code for more examples.
 
 ## Changing serialization format
+By default `replicator` uses JSON under the hood. But you can use any serializer by passing serializer adapter to `Replicator`
+constructor. E.g., let's use [BSON](https://www.npmjs.com/package/bson) as serializer:
+```js
+const Replicator = require('replicator');
+const BSON       = require('bson');
+
+const replicator = new Replicator({
+    serialize (val) {
+        return BSON.serialize(val, false, true, false);
+    },
+
+    deserialize: BSON.deserialize
+});
+
+replicator.encode(['yo', 42]);
+// > <Buffer>
+```
 
 ## Author
 [Ivan Nikulin](https://github.com/inikulin) (ifaaan@gmail.com)

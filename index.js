@@ -14,8 +14,22 @@ var TYPED_ARRAY_SUPPORTED = typeof ArrayBuffer === 'function';
 var MAP_SUPPORTED         = typeof Map === 'function';
 var SET_SUPPORTED         = typeof Set === 'function';
 
+
 // Saved proto functions
 var arrSlice = Array.prototype.slice;
+
+
+// Default serializer
+var JSONSerializer = {
+    serialize: function (val) {
+        return JSON.stringify(val);
+    },
+
+    deserialize: function (val) {
+        return JSON.parse(val);
+    }
+};
+
 
 // EncodingTransformer
 var EncodingTransformer = function (val, transforms) {
@@ -486,7 +500,7 @@ var builtInTransforms = [
 var Replicator = module.exports = function (serializer) {
     this.transforms    = [];
     this.transformsMap = Object.create(null);
-    this.serializer    = serializer || JSON;
+    this.serializer    = serializer || JSONSerializer;
 
     this.addTransforms(builtInTransforms);
 };
@@ -528,11 +542,11 @@ Replicator.prototype.encode = function (val) {
     var transformer = new EncodingTransformer(val, this.transforms);
     var references  = transformer.transform();
 
-    return this.serializer.stringify(references);
+    return this.serializer.serialize(references);
 };
 
 Replicator.prototype.decode = function (val) {
-    var references  = this.serializer.parse(val);
+    var references  = this.serializer.deserialize(val);
     var transformer = new DecodingTransformer(references, this.transformsMap);
 
     return transformer.transform();
