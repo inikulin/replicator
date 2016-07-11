@@ -1,6 +1,6 @@
 {
   "name": "replicator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Advanced JavaScript objects serialization.",
   "main": "index.js",
   "scripts": {

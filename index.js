@@ -10,9 +10,21 @@ var GLOBAL = (function getGlobal () {
     return savedEval('this');
 })();
 
-var TYPED_ARRAY_SUPPORTED = typeof ArrayBuffer === 'function';
-var MAP_SUPPORTED         = typeof Map === 'function';
-var SET_SUPPORTED         = typeof Set === 'function';
+var ARRAY_BUFFER_SUPPORTED = typeof ArrayBuffer === 'function';
+var MAP_SUPPORTED          = typeof Map === 'function';
+var SET_SUPPORTED          = typeof Set === 'function';
+
+var TYPED_ARRAY_CTORS = [
+    'Int8Array',
+    'Uint8Array',
+    'Uint8ClampedArray',
+    'Int16Array',
+    'Uint16Array',
+    'Int32Array',
+    'Uint32Array',
+    'Float32Array',
+    'Float64Array'
+];
 
 
 // Saved proto functions
@@ -370,7 +382,7 @@ var builtInTransforms = [
         type: '[[ArrayBuffer]]',
 
         shouldTransform: function (type, val) {
-            return TYPED_ARRAY_SUPPORTED && val instanceof ArrayBuffer;
+            return ARRAY_BUFFER_SUPPORTED && val instanceof ArrayBuffer;
         },
 
         toSerializable: function (buffer) {
@@ -380,7 +392,7 @@ var builtInTransforms = [
         },
 
         fromSerializable: function (val) {
-            if (TYPED_ARRAY_SUPPORTED) {
+            if (ARRAY_BUFFER_SUPPORTED) {
                 var buffer = new ArrayBuffer(val.length);
                 var view   = new Int8Array(buffer);
 
@@ -397,17 +409,14 @@ var builtInTransforms = [
         type: '[[TypedArray]]',
 
         shouldTransform: function (type, val) {
-            return TYPED_ARRAY_SUPPORTED && (
-                    val instanceof Int8Array ||
-                    val instanceof Uint8Array ||
-                    val instanceof Uint8ClampedArray ||
-                    val instanceof Int16Array ||
-                    val instanceof Uint16Array ||
-                    val instanceof Int32Array ||
-                    val instanceof Uint32Array ||
-                    val instanceof Float32Array ||
-                    val instanceof Float64Array
-                );
+            for (var i = 0; i < TYPED_ARRAY_CTORS.length; i++) {
+                var ctorName = TYPED_ARRAY_CTORS[i];
+
+                if (typeof GLOBAL[ctorName] === 'function' && val instanceof GLOBAL[ctorName])
+                    return true;
+            }
+
+            return false;
         },
 
         toSerializable: function (arr) {
@@ -418,10 +427,7 @@ var builtInTransforms = [
         },
 
         fromSerializable: function (val) {
-            if (TYPED_ARRAY_SUPPORTED)
-                return new GLOBAL[val.ctorName](val.arr);
-
-            return val.arr;
+            return typeof GLOBAL[val.ctorName] === 'function' ? new GLOBAL[val.ctorName](val.arr) : val.arr;
         }
     },
 

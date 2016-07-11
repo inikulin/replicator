@@ -378,3 +378,21 @@ describe('Built-in transforms', function () {
         assert(!actual.set.has('yo'));
     });
 });
+
+describe('Regression', function () {
+    var replicator = new Replicator();
+
+    it('Should not throw if one of the typed array types is not supported (GH-1)', function () {
+        var arr             = new Uint8Array([1, 230]);
+        var savedUint8Array = global.Uint8Array;
+
+        global.Uint8Array = void 0;
+
+        var actual = replicator.decode(replicator.encode(arr));
+
+        assert.strictEqual(actual[0], 1);
+        assert.strictEqual(actual[1], 230);
+
+        global.Uint8Array = savedUint8Array;
+    });
+});
