@@ -211,21 +211,22 @@ DecodingTransformer.prototype._handleCircularSelfRefDuringTransform = function (
     // new circular references. As a workaround we create getter, so once transformation
     // complete, dereferenced property will point to correct transformed object.
     var references = this.references;
+    var val = void 0;
 
     Object.defineProperty(parent, key, {
-        val:          void 0,
         configurable: true,
         enumerable:   true,
 
         get: function () {
-            if (this.val === void 0)
-                this.val = references[refIdx];
+            if (val === void 0)
+                val = references[refIdx];
 
-            return this.val;
+            return val;
         },
 
         set: function (value) {
-            this.val = value;
+            val = value;
+            return val;
         }
     });
 };
