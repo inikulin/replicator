@@ -226,6 +226,7 @@ DecodingTransformer.prototype._handleCircularSelfRefDuringTransform = function (
 
         set: function (value) {
             val = value;
+            return val;
         }
     });
 };
