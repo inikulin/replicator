@@ -20,8 +20,8 @@
   - `Error`<sup>[1](#note1)</sup>
   - `Map`<sup>[2](#note2)</sup>
   - `Set`<sup>[3](#note3)</sup>
-  - `ArrayBuffer`<sup>[3](#note4)</sup>
-  - Typed arrays<sup>[3](#note5)</sup>
+  - `ArrayBuffer`<sup>[3](#note3)</sup>
+  - Typed arrays<sup>[3](#note3)</sup>
 - [Can be extended with custom type transforms](#adding-custom-types-support)
 - [Can use any target serializer under the hood](#changing-serialization-format) (JSON, BSON, protobuf, etc.)
 
