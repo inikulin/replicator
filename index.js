@@ -89,12 +89,15 @@ EncodingTransformer.prototype._handleArray = function (arr) {
 
 EncodingTransformer.prototype._handlePlainObject = function (obj) {
     var result = Object.create(null);
+    var plainObject = obj;
 
-    for (var key in obj) {
-        if (obj.hasOwnProperty(key)) {
+    if (!obj['hasOwnProperty']) plainObject = Object.assign({}, obj);
+
+    for (var key in plainObject) {
+        if (plainObject.hasOwnProperty(key)) {
             var resultKey = KEY_REQUIRE_ESCAPING_RE.test(key) ? '#' + key : key;
 
-            result[resultKey] = this._handleValue(obj[key], result, resultKey);
+            result[resultKey] = this._handleValue(plainObject[key], result, resultKey);
         }
     }
 
