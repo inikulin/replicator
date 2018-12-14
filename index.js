@@ -88,15 +88,15 @@ EncodingTransformer.prototype._handleArray = function (arr) {
 };
 
 EncodingTransformer.prototype._handlePlainObject = function (obj) {
-    var result = Object.create(null);
+    var replicator       = this;
+    var result           = Object.create(null);
+    var ownPropertyNames = Object.getOwnPropertyNames(obj);
 
-    for (var key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            var resultKey = KEY_REQUIRE_ESCAPING_RE.test(key) ? '#' + key : key;
+    ownPropertyNames.forEach(function (key) {
+        var resultKey = KEY_REQUIRE_ESCAPING_RE.test(key) ? '#' + key : key;
 
-            result[resultKey] = this._handleValue(obj[key], result, resultKey);
-        }
-    }
+        result[resultKey] = replicator._handleValue(obj[key], result, resultKey);
+    });
 
     return result;
 };
@@ -170,20 +170,20 @@ var DecodingTransformer = function (references, transformsMap) {
 };
 
 DecodingTransformer.prototype._handlePlainObject = function (obj) {
-    var unescaped = Object.create(null);
+    var replicator       = this;
+    var unescaped        = Object.create(null);
+    var ownPropertyNames = Object.getOwnPropertyNames(obj);
 
-    for (var key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            this._handleValue(obj[key], obj, key);
+    ownPropertyNames.forEach(function (key) {
+        replicator._handleValue(obj[key], obj, key);
 
-            if (KEY_REQUIRE_ESCAPING_RE.test(key)) {
-                // NOTE: use intermediate object to avoid unescaped and escaped keys interference
-                // E.g. unescaped "##@t" will be "#@t" which can overwrite escaped "#@t".
-                unescaped[key.substring(1)] = obj[key];
-                delete obj[key];
-            }
+        if (KEY_REQUIRE_ESCAPING_RE.test(key)) {
+            // NOTE: use intermediate object to avoid unescaped and escaped keys interference
+            // E.g. unescaped "##@t" will be "#@t" which can overwrite escaped "#@t".
+            unescaped[key.substring(1)] = obj[key];
+            delete obj[key];
         }
-    }
+    });
 
     for (var unsecapedKey in unescaped)
         obj[unsecapedKey] = unescaped[unsecapedKey];
