@@ -395,4 +395,16 @@ describe('Regression', function () {
 
         global.Uint8Array = savedUint8Array;
     });
+
+    it('Should encode objects with null as a prototype', function () {
+        var obj = Object.create(null);
+
+        obj.foo = 'bar';
+        obj.ans = 42;
+
+        var actual = replicator.decode(replicator.encode(obj));
+        
+        assert.strictEqual(actual.foo, 'bar');
+        assert.strictEqual(actual.ans, 42);
+    });
 });
