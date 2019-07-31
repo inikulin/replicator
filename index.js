@@ -34,11 +34,11 @@ var arrSlice = Array.prototype.slice;
 // Default serializer
 var JSONSerializer = {
     serialize: function () {
-        return JSON.stringify(...arguments);
+        return JSON.stringify.apply(JSON, arguments);
     },
 
     deserialize: function () {
-        return JSON.parse(...arguments);
+        return JSON.parse.apply(JSON, arguments);
     }
 };
 
@@ -545,15 +545,15 @@ Replicator.prototype.removeTransforms = function (transforms) {
     return this;
 };
 
-Replicator.prototype.encode = function (val, replacer, space, ...options) {
+Replicator.prototype.encode = function (val, replacer, space) {
     var transformer = new EncodingTransformer(val, this.transforms);
     var references  = transformer.transform();
 
-    return this.serializer.serialize(references, replacer, space, ...options);
+    return this.serializer.serialize.apply(this.serializer, [references].concat(arrSlice.call(arguments, 1)));
 };
 
-Replicator.prototype.decode = function (val, reviver, ...options) {
-    var references  = this.serializer.deserialize(val, reviver, ...options);
+Replicator.prototype.decode = function (val, reviver) {
+    var references  = this.serializer.deserialize.apply(this.serializer, arguments);
     var transformer = new DecodingTransformer(references, this.transformsMap);
 
     return transformer.transform();
