@@ -545,14 +545,14 @@ Replicator.prototype.removeTransforms = function (transforms) {
     return this;
 };
 
-Replicator.prototype.encode = function (val, replacer, space) {
+Replicator.prototype.encode = function (val) {
     var transformer = new EncodingTransformer(val, this.transforms);
     var references  = transformer.transform();
 
     return this.serializer.serialize.apply(this.serializer, [references].concat(arrSlice.call(arguments, 1)));
 };
 
-Replicator.prototype.decode = function (val, reviver) {
+Replicator.prototype.decode = function () {
     var references  = this.serializer.deserialize.apply(this.serializer, arguments);
     var transformer = new DecodingTransformer(references, this.transformsMap);
 
