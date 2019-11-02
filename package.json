@@ -35,7 +35,7 @@
   ],
   "homepage": "https://github.com/inikulin/replicator#readme",
   "devDependencies": {
-    "eslint": "^2.9.0",
+    "eslint": "^6.6.0",
     "mocha": "^5.2.0",
     "publish-please": "^5.4.3"
   }
