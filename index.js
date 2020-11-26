@@ -4,6 +4,7 @@ var CIRCULAR_REF_KEY        = '@r';
 var KEY_REQUIRE_ESCAPING_RE = /^#*@(t|r)$/;
 
 var GLOBAL = (function getGlobal () {
+    /* eslint-disable */
     // Credits to Kithraya from https://stackoverflow.com/a/64780899
     if (typeof window !== 'undefined' && window && window.window === window) {
         // All browsers
@@ -25,7 +26,9 @@ var GLOBAL = (function getGlobal () {
             return (typeof globalThis === 'object') ? globalThis : ( (typeof global === 'object') ? global : this );
         }
     }
+    /* eslint-enable */
 })();
+
 
 var ARRAY_BUFFER_SUPPORTED = typeof ArrayBuffer === 'function';
 var MAP_SUPPORTED          = typeof Map === 'function';
