@@ -2,9 +2,12 @@
   "name": "replicator",
   "version": "1.0.3",
   "description": "Advanced JavaScript objects serialization.",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "test": "eslint index.js test && mocha",
+    "build": "npx tsc -p src/tsconfig.json",
+    "lint": "eslint src test",
+    "test": "npm run lint && npm run build && npm run unit",
+    "unit": "mocha",
     "publish-please": "publish-please",
     "prepublish": "publish-please guard"
   },
@@ -35,8 +38,11 @@
   ],
   "homepage": "https://github.com/inikulin/replicator#readme",
   "devDependencies": {
-    "eslint": "^2.9.0",
-    "mocha": "^5.2.0",
-    "publish-please": "^5.4.3"
+    "@typescript-eslint/eslint-plugin": "^4.23.0",
+    "@typescript-eslint/parser": "^4.23.0",
+    "eslint": "^7.26.0",
+    "mocha": "^8.4.0",
+    "publish-please": "^5.5.2",
+    "typescript": "^4.2.4"
   }
 }

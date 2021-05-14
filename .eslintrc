@@ -1,5 +1,9 @@
 {
-  "extends": "eslint:recommended",
+  "parser": "@typescript-eslint/parser",
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
   "rules": {
     "no-alert": 2,
     "no-array-constructor": 2,
