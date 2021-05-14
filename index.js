@@ -28,7 +28,7 @@ var SET_SUPPORTED          = typeof Set === 'function';
 
 var TYPED_ARRAY_SUPPORTED  = function (typeName) {
     return typeof TYPED_ARRAY_CTORS[typeName] === 'function'; 
-}
+};
 
 // Saved proto functions
 var arrSlice = Array.prototype.slice;
