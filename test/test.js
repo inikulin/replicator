@@ -1,5 +1,6 @@
-var Replicator = require('../');
-var assert     = require('assert');
+const Replicator  = require('../');
+const assert      = require('assert');
+const { getData } = require('./helpers/gh-16');
 
 it('Should add and remove transforms', function () {
     var replicator = new Replicator();
@@ -407,4 +408,9 @@ describe('Regression', function () {
         assert.strictEqual(actual.foo, 'bar');
         assert.strictEqual(actual.ans, 42);
     });
+
+    it.only('Should not allow RCE when deserializing TypedArrays', function () {
+        const replicator = new Replicator();
+        replicator.decode('[{"@t":"[[TypedArray]]","data":{"ctorName":"setTimeout","arr":{"@t":"[[TypedArray]]","data":{"ctorName":"Function","arr":" require(\'./helpers/gh-16\').setData(\'\')"}}}}]') 
+    })
 });
