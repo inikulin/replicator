@@ -22,12 +22,16 @@ var TYPED_ARRAY_CTORS = {
     Float64Array
 };
 
-var ARRAY_BUFFER_SUPPORTED = typeof ArrayBuffer === 'function';
-var MAP_SUPPORTED          = typeof Map === 'function';
-var SET_SUPPORTED          = typeof Set === 'function';
+function isFunction (value) {
+    return typeof value === 'function';
+}
+
+var ARRAY_BUFFER_SUPPORTED = isFunction(ArrayBuffer);
+var MAP_SUPPORTED          = isFunction(Map);
+var SET_SUPPORTED          = isFunction(Set);
 
 var TYPED_ARRAY_SUPPORTED  = function (typeName) {
-    return typeof TYPED_ARRAY_CTORS[typeName] === 'function'; 
+    return isFunction(TYPED_ARRAY_CTORS[typeName]); 
 };
 
 // Saved proto functions
