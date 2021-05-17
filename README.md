@@ -6,6 +6,7 @@
 <p align="center">
 <i>Advanced JavaScript objects serialization</i>
 </p>
+<p align="center">
   <a href="https://github.com/inikulin/replicator/commits/master"><img alt="GitHub branch checks state" src="https://img.shields.io/github/checks-status/inikulin/replicator/master?label=tests"></a>
   <a href="https://www.npmjs.com/package/replicator"><img alt="NPM Version" src="https://img.shields.io/npm/v/replicator.svg"></a>
 </p>
