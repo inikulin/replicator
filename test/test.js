@@ -1,5 +1,7 @@
-var Replicator = require('../');
-var assert     = require('assert');
+const Replicator  = require('../');
+const assert      = require('assert');
+const helpersGH16 = require('./helpers/gh-16');
+
 
 it('Should add and remove transforms', function () {
     var replicator = new Replicator();
@@ -406,5 +408,14 @@ describe('Regression', function () {
         
         assert.strictEqual(actual.foo, 'bar');
         assert.strictEqual(actual.ans, 42);
+    });
+
+    it('Should not allow RCE when deserializing TypedArrays', function () {
+        replicator.decode(helpersGH16.vulnerableData); 
+
+        return helpersGH16.checkIfBroken()
+            .then(function (result) {
+                assert.strictEqual(result, false);
+            });
     });
 });

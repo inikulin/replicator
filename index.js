@@ -10,22 +10,29 @@ var GLOBAL = (function getGlobal () {
     return savedEval('this');
 })();
 
-var ARRAY_BUFFER_SUPPORTED = typeof ArrayBuffer === 'function';
-var MAP_SUPPORTED          = typeof Map === 'function';
-var SET_SUPPORTED          = typeof Set === 'function';
+var TYPED_ARRAY_CTORS = {
+    'Int8Array':         Int8Array,
+    'Uint8Array':        Uint8Array,
+    'Uint8ClampedArray': Uint8ClampedArray,
+    'Int16Array':        Int16Array,
+    'Uint16Array':       Uint16Array,
+    'Int32Array':        Int32Array,
+    'Uint32Array':       Uint32Array,
+    'Float32Array':      Float32Array,
+    'Float64Array':      Float64Array
+};
 
-var TYPED_ARRAY_CTORS = [
-    'Int8Array',
-    'Uint8Array',
-    'Uint8ClampedArray',
-    'Int16Array',
-    'Uint16Array',
-    'Int32Array',
-    'Uint32Array',
-    'Float32Array',
-    'Float64Array'
-];
+function isFunction (value) {
+    return typeof value === 'function';
+}
 
+var ARRAY_BUFFER_SUPPORTED = isFunction(ArrayBuffer);
+var MAP_SUPPORTED          = isFunction(Map);
+var SET_SUPPORTED          = isFunction(Set);
+
+var TYPED_ARRAY_SUPPORTED  = function (typeName) {
+    return isFunction(TYPED_ARRAY_CTORS[typeName]); 
+};
 
 // Saved proto functions
 var arrSlice = Array.prototype.slice;
@@ -410,14 +417,9 @@ var builtInTransforms = [
         type: '[[TypedArray]]',
 
         shouldTransform: function (type, val) {
-            for (var i = 0; i < TYPED_ARRAY_CTORS.length; i++) {
-                var ctorName = TYPED_ARRAY_CTORS[i];
-
-                if (typeof GLOBAL[ctorName] === 'function' && val instanceof GLOBAL[ctorName])
-                    return true;
-            }
-
-            return false;
+            return Object.keys(TYPED_ARRAY_CTORS).some(function (ctorName) {
+                return TYPED_ARRAY_SUPPORTED(ctorName) && val instanceof TYPED_ARRAY_CTORS[ctorName];
+            });
         },
 
         toSerializable: function (arr) {
@@ -428,7 +430,7 @@ var builtInTransforms = [
         },
 
         fromSerializable: function (val) {
-            return typeof GLOBAL[val.ctorName] === 'function' ? new GLOBAL[val.ctorName](val.arr) : val.arr;
+            return TYPED_ARRAY_SUPPORTED(val.ctorName) ? new TYPED_ARRAY_CTORS[val.ctorName](val.arr) : val.arr;
         }
     },
 
