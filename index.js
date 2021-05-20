@@ -22,17 +22,13 @@ var TYPED_ARRAY_CTORS = {
     'Float64Array':      Float64Array
 };
 
-function isFunction (value) {
-    return typeof value === 'function';
-}
-
-var ARRAY_BUFFER_SUPPORTED = isFunction(ArrayBuffer);
-var MAP_SUPPORTED          = isFunction(Map);
-var SET_SUPPORTED          = isFunction(Set);
-var BUFFER_FROM_SUPPORTED  = isFunction(Buffer);
+var ARRAY_BUFFER_SUPPORTED = typeof ArrayBuffer === 'function';
+var MAP_SUPPORTED          = typeof Map === 'function';
+var SET_SUPPORTED          = typeof Set === 'function';
+var BUFFER_FROM_SUPPORTED  = typeof Buffer === 'function';
 
 var TYPED_ARRAY_SUPPORTED  = function (typeName) {
-    return isFunction(TYPED_ARRAY_CTORS[typeName]);
+    return typeof TYPED_ARRAY_CTORS[typeName] === 'function';
 };
 
 // Saved proto functions
