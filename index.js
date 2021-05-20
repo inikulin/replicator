@@ -29,9 +29,10 @@ function isFunction (value) {
 var ARRAY_BUFFER_SUPPORTED = isFunction(ArrayBuffer);
 var MAP_SUPPORTED          = isFunction(Map);
 var SET_SUPPORTED          = isFunction(Set);
+var BUFFER_FROM_SUPPORTED  = isFunction(Buffer);
 
 var TYPED_ARRAY_SUPPORTED  = function (typeName) {
-    return isFunction(TYPED_ARRAY_CTORS[typeName]); 
+    return isFunction(TYPED_ARRAY_CTORS[typeName]);
 };
 
 // Saved proto functions
@@ -408,6 +409,25 @@ var builtInTransforms = [
 
                 return buffer;
             }
+
+            return val;
+        }
+    },
+
+    {
+        type: '[[Buffer]]',
+
+        shouldTransform: function (type, val) {
+            return BUFFER_FROM_SUPPORTED && val instanceof Buffer;
+        },
+
+        toSerializable: function (buffer) {
+            return arrSlice.call(buffer);
+        },
+
+        fromSerializable: function (val) {
+            if (BUFFER_FROM_SUPPORTED)
+                return Buffer.from(val);
 
             return val;
         }
