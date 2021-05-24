@@ -11,15 +11,15 @@ var GLOBAL = (function getGlobal () {
 })();
 
 var TYPED_ARRAY_CTORS = {
-    'Int8Array':         Int8Array,
-    'Uint8Array':        Uint8Array,
-    'Uint8ClampedArray': Uint8ClampedArray,
-    'Int16Array':        Int16Array,
-    'Uint16Array':       Uint16Array,
-    'Int32Array':        Int32Array,
-    'Uint32Array':       Uint32Array,
-    'Float32Array':      Float32Array,
-    'Float64Array':      Float64Array
+    'Int8Array':         typeof Int8Array !== 'undefined' ? Int8Array : void 0,
+    'Uint8Array':        typeof Uint8Array !== 'undefined' ? Uint8Array : void 0,
+    'Uint8ClampedArray': typeof Uint8ClampedArray !== 'undefined' ? Uint8ClampedArray : void 0,
+    'Int16Array':        typeof Int16Array !== 'undefined' ? Int16Array : void 0,
+    'Uint16Array':       typeof Uint16Array !== 'undefined' ? Uint16Array : void 0,
+    'Int32Array':        typeof Int32Array !== 'undefined' ? Int32Array : void 0,
+    'Uint32Array':       typeof Uint32Array !== 'undefined' ? Uint32Array : void 0,
+    'Float32Array':      typeof Float32Array !== 'undefined' ? Float32Array : void 0,
+    'Float64Array':      typeof Float64Array !== 'undefined' ? Float64Array : void 0
 };
 
 var ARRAY_BUFFER_SUPPORTED = typeof ArrayBuffer === 'function';
