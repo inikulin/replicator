@@ -11,15 +11,15 @@ var GLOBAL = (function getGlobal () {
 })();
 
 var TYPED_ARRAY_CTORS = {
-    'Int8Array':         typeof Int8Array !== 'undefined' ? Int8Array : void 0,
-    'Uint8Array':        typeof Uint8Array !== 'undefined' ? Uint8Array : void 0,
-    'Uint8ClampedArray': typeof Uint8ClampedArray !== 'undefined' ? Uint8ClampedArray : void 0,
-    'Int16Array':        typeof Int16Array !== 'undefined' ? Int16Array : void 0,
-    'Uint16Array':       typeof Uint16Array !== 'undefined' ? Uint16Array : void 0,
-    'Int32Array':        typeof Int32Array !== 'undefined' ? Int32Array : void 0,
-    'Uint32Array':       typeof Uint32Array !== 'undefined' ? Uint32Array : void 0,
-    'Float32Array':      typeof Float32Array !== 'undefined' ? Float32Array : void 0,
-    'Float64Array':      typeof Float64Array !== 'undefined' ? Float64Array : void 0
+    'Int8Array':         typeof Int8Array === 'function' ? Int8Array : void 0,
+    'Uint8Array':        typeof Uint8Array === 'function' ? Uint8Array : void 0,
+    'Uint8ClampedArray': typeof Uint8ClampedArray === 'function' ? Uint8ClampedArray : void 0,
+    'Int16Array':        typeof Int16Array === 'function' ? Int16Array : void 0,
+    'Uint16Array':       typeof Uint16Array === 'function' ? Uint16Array : void 0,
+    'Int32Array':        typeof Int32Array === 'function' ? Int32Array : void 0,
+    'Uint32Array':       typeof Uint32Array === 'function' ? Uint32Array : void 0,
+    'Float32Array':      typeof Float32Array === 'function' ? Float32Array : void 0,
+    'Float64Array':      typeof Float64Array === 'function' ? Float64Array : void 0
 };
 
 var ARRAY_BUFFER_SUPPORTED = typeof ArrayBuffer === 'function';
@@ -28,7 +28,7 @@ var SET_SUPPORTED          = typeof Set === 'function';
 var BUFFER_FROM_SUPPORTED  = typeof Buffer === 'function';
 
 var TYPED_ARRAY_SUPPORTED  = function (typeName) {
-    return typeof TYPED_ARRAY_CTORS[typeName] === 'function';
+    return !!TYPED_ARRAY_CTORS[typeName];
 };
 
 // Saved proto functions
