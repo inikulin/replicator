@@ -11,27 +11,24 @@ var GLOBAL = (function getGlobal () {
 })();
 
 var TYPED_ARRAY_CTORS = {
-    'Int8Array':         Int8Array,
-    'Uint8Array':        Uint8Array,
-    'Uint8ClampedArray': Uint8ClampedArray,
-    'Int16Array':        Int16Array,
-    'Uint16Array':       Uint16Array,
-    'Int32Array':        Int32Array,
-    'Uint32Array':       Uint32Array,
-    'Float32Array':      Float32Array,
-    'Float64Array':      Float64Array
+    'Int8Array':         typeof Int8Array === 'function' ? Int8Array : void 0,
+    'Uint8Array':        typeof Uint8Array === 'function' ? Uint8Array : void 0,
+    'Uint8ClampedArray': typeof Uint8ClampedArray === 'function' ? Uint8ClampedArray : void 0,
+    'Int16Array':        typeof Int16Array === 'function' ? Int16Array : void 0,
+    'Uint16Array':       typeof Uint16Array === 'function' ? Uint16Array : void 0,
+    'Int32Array':        typeof Int32Array === 'function' ? Int32Array : void 0,
+    'Uint32Array':       typeof Uint32Array === 'function' ? Uint32Array : void 0,
+    'Float32Array':      typeof Float32Array === 'function' ? Float32Array : void 0,
+    'Float64Array':      typeof Float64Array === 'function' ? Float64Array : void 0
 };
 
-function isFunction (value) {
-    return typeof value === 'function';
-}
-
-var ARRAY_BUFFER_SUPPORTED = isFunction(ArrayBuffer);
-var MAP_SUPPORTED          = isFunction(Map);
-var SET_SUPPORTED          = isFunction(Set);
+var ARRAY_BUFFER_SUPPORTED = typeof ArrayBuffer === 'function';
+var MAP_SUPPORTED          = typeof Map === 'function';
+var SET_SUPPORTED          = typeof Set === 'function';
+var BUFFER_FROM_SUPPORTED  = typeof Buffer === 'function';
 
 var TYPED_ARRAY_SUPPORTED  = function (typeName) {
-    return isFunction(TYPED_ARRAY_CTORS[typeName]); 
+    return !!TYPED_ARRAY_CTORS[typeName];
 };
 
 // Saved proto functions
@@ -408,6 +405,25 @@ var builtInTransforms = [
 
                 return buffer;
             }
+
+            return val;
+        }
+    },
+
+    {
+        type: '[[Buffer]]',
+
+        shouldTransform: function (type, val) {
+            return BUFFER_FROM_SUPPORTED && val instanceof Buffer;
+        },
+
+        toSerializable: function (buffer) {
+            return arrSlice.call(buffer);
+        },
+
+        fromSerializable: function (val) {
+            if (BUFFER_FROM_SUPPORTED)
+                return Buffer.from(val);
 
             return val;
         }

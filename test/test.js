@@ -316,6 +316,21 @@ describe('Built-in transforms', function () {
         assert.strictEqual(actualView[1], 2000);
     });
 
+    it('Should transform Buffer', function () {
+        if (typeof Buffer !== 'function')
+            return;
+
+        var buffer = Buffer.from([3, 5]);
+
+        var actual = replicator.decode(replicator.encode(buffer));
+
+        assert(actual instanceof Buffer);
+        assert.strictEqual(actual.length, 2);
+
+        assert.strictEqual(actual[0], 3);
+        assert.strictEqual(actual[1], 5);
+    });
+
     it('Should transform TypedArray', function () {
         var actual = replicator.decode(replicator.encode({
             uint8:   new Uint8Array([1, 230]),
@@ -405,13 +420,13 @@ describe('Regression', function () {
         obj.ans = 42;
 
         var actual = replicator.decode(replicator.encode(obj));
-        
+
         assert.strictEqual(actual.foo, 'bar');
         assert.strictEqual(actual.ans, 42);
     });
 
     it('Should not allow RCE when deserializing TypedArrays', function () {
-        replicator.decode(helpersGH16.vulnerableData); 
+        replicator.decode(helpersGH16.vulnerableData);
 
         return helpersGH16.checkIfBroken()
             .then(function (result) {
