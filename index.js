@@ -4,10 +4,29 @@ var CIRCULAR_REF_KEY        = '@r';
 var KEY_REQUIRE_ESCAPING_RE = /^#*@(t|r)$/;
 
 var GLOBAL = (function getGlobal () {
-    // NOTE: see http://www.ecma-international.org/ecma-262/6.0/index.html#sec-performeval step 10
-    var savedEval = eval;
+    /* eslint-disable */
+    // Credits to Kithraya from https://stackoverflow.com/a/64780899
+    if (typeof window !== 'undefined' && window && window.window === window) {
+        // All browsers
+        return window;
+    } else { // webworkers, or server-side Javascript, like Node.js
+        try {
+            Object.defineProperty( Object.prototype, '__magic__', {
+                get: function() {
+                    return this;
+                },
+                configurable: true // This makes it possible to 'delete' the getter later
+            });
+            __magic__.globalThis = __magic__;
+            delete Object.prototype.__magic__;
 
-    return savedEval('this');
+            return globalThis;
+        } catch (e) {
+            // we shouldn't ever get here, since all server-side JS environments that I know of support Object.defineProperty
+            return (typeof globalThis === 'object') ? globalThis : ( (typeof global === 'object') ? global : this );
+        }
+    }
+    /* eslint-enable */
 })();
 
 var TYPED_ARRAY_CTORS = {
